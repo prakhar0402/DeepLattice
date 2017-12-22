@@ -1,5 +1,7 @@
 jupyter
 numpy
+scipy
+networkx
 matplotlib
 scikit-image
-numpy-stl
+trimesh
