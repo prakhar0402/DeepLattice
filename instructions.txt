@@ -16,3 +16,10 @@
     conda install -c conda-forge rtree shapely
     conda install -c conda-forge pyembree
     pip install trimesh[easy]
+# install meshpy (something might be missing here.. lol)
+    git clone --recursive http://git.tiker.net/trees/meshpy.git
+    cd meshpy
+    python ./configure.py
+    python setup.py install
+    
+    

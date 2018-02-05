@@ -5,3 +5,4 @@ networkx
 matplotlib
 scikit-image
 trimesh
+meshpy
