@@ -1,0 +1,8 @@
+SLURM_JOBID=8266490
+SLURM_JOB_NODELIST=cpn-k08-40-02
+SLURM_NNODES=1
+SLURMTMPDIR=/scratch/8266490
+working directory = /projects/academic/rahulrai/prakharj/aperiodiclattice
+No modules loaded
+Starting job...
+slurmstepd: error: *** JOB 8266490 ON cpn-k08-40-02 CANCELLED AT 2018-02-12T18:22:36 DUE TO TIME LIMIT ***

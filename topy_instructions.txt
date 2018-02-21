@@ -1,0 +1,25 @@
+# Create conda environment with Python 2.7
+1. (one time) conda create -n pylat27 python=2.7
+# Acivate the environment
+2. source activate pylat27
+# Install required libraries
+3. (one time) conda install numpy
+4. (one time) conda install matplotlib
+5. (one time) conda install jupyter
+5. (one time) conda install sympy
+6. (one time) conda install vtk
+7. (one time) conda install -c conda-forge pyvtk
+8. (one time) conda install -c guyer pysparse
+# Install ToPy
+9. (one time) python setup.py install
+# Run the optimize code on problem defined in TPD fileformat
+10. python optimize.py <filename>.tpd
+# The results are saved in subdirectory '/iterations'
+# Convert the output images to GIF format for visualization
+11. convert -delay 35 *.png anim.gif
+
+
+# List of changes:
+1. changed visualization.py to use Agg backend for matplotlib. This was done to prevent error occuring while running the code on CCR using slurm due to missing display option.
+2. added load_config_dict function to topology.py for loading TPD from python dictionary.
+
