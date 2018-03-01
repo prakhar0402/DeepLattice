@@ -1,3 +1,5 @@
+# ToPy INSTRUCTIONS
+
 # Create conda environment with Python 2.7
 1. (one time) conda create -n pylat27 python=2.7
 # Acivate the environment
@@ -19,7 +21,7 @@
 11. convert -delay 35 *.png anim.gif
 
 
-# List of changes:
+# List of Changes made in the ToPy Source Code:
 1. changed visualization.py to use Agg backend for matplotlib. This was done to prevent error occuring while running the code on CCR using slurm due to missing display option.
 2. added load_config_dict function to topology.py for loading TPD from python dictionary.
-
+3. added qkq variable in topology.py sens_analysis method to obtain compliance outside topy.

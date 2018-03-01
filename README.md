@@ -1,5 +1,9 @@
-# Aperiodic Lattice Generation
-
-Functionally viable lattice generation in 3D design using deep learning
+# Deep Reinforcement Learning for Aperiodic Lattice Generation
 
 Project under construction
+
+### Dependencies
+- NumPy
+- Tensorflow
+- Keras
+- [ToPy](https://github.com/williamhunter/topy)

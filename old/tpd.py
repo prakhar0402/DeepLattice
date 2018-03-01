@@ -2,6 +2,9 @@ import topy
 import numpy as np
 
 def minimal_tpd_dict():
+    '''
+    Creates and returns a minimal ToPy Problem Definition
+    '''
     tpd_dict = {
         'PROB_TYPE': 'comp',
         'PROB_NAME': 'tpd_test',
@@ -22,6 +25,9 @@ def minimal_tpd_dict():
     return tpd_dict
 
 def passive_elems(bin_img):
+    '''
+    Returns a sorted list of linear indices of pixels where the input image is False
+    '''
     return np.sort(np.ravel_multi_index(np.where(bin_img == False), bin_img.shape))
 
 
