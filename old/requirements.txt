@@ -1,8 +1,0 @@
-jupyter
-numpy
-scipy
-networkx
-matplotlib
-scikit-image
-trimesh
-meshpy
