@@ -96,7 +96,8 @@ class Domain(object):
         self.dispX = disp[:, :, 0, :] # TODO: change displacement size
         self.dispY = disp[:, :, 1, :]
         
-        self.comp = t.qkq[:, :, np.newaxis]
+        self.comp = t.qkq.T
+        self.comp = self.comp[:, :, np.newaxis]
         
     def _update(self, action):
         delta = self.paramsDel * np.sign(np.around(action))
@@ -135,6 +136,6 @@ class Lattice(object):
         
         # temporary reward function
         # TODO: define appropriate reward
-        reward = 0.001*np.random.randn() + 0.1*delVF
+        reward = 0.0001*np.random.randn() + delVF
         return self.domain, reward
         
