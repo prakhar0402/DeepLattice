@@ -1,5 +1,6 @@
 import topy
 import numpy as np
+import matplotlib.pyplot as plt
 
 DOMAIN_SZ = np.array([128, 96])
 CELL_SZ = np.array([16, 16])
@@ -185,22 +186,27 @@ class Domain(object):
         self.numCells = (self.domainSz//self.cellSz).astype(int) # TODO: ensure domainSz is divisible by cellSz
         
         # TODO: fix for more than 1 paramsDim
-        self.params = ((self.paramsMax+self.paramsMin)/2.)*np.ones(np.append(self.numCells, self.paramsDim))
+        self.reset_params()
         
-        self.bin_img = np.zeros(self.domainSz, dtype = bool)[:, :, np.newaxis] # Shape in the domain
+        self.binImg = np.zeros(self.domainSz, dtype = bool)[:, :, np.newaxis] # Shape in the domain
         self.dispX = np.zeros(self.domainSz + 1)[:, :, np.newaxis] # Node displacement X
         self.dispY = np.zeros(self.domainSz + 1)[:, :, np.newaxis] # Node displacement Y
         self.comp = np.zeros(self.domainSz)[:, :, np.newaxis] # Compliance
         
         self.volFrac = 0.
+        
+    def reset_params(self, value = -1.):
+        if value < 0:
+            value = (self.paramsMax+self.paramsMin)/2.
+        self.params = value*np.ones(np.append(self.numCells, self.paramsDim))
     
     def passive_elems(self):
         '''
         Returns a sorted list of linear indices of pixels where the input image is False
         '''
-        return np.sort(np.ravel_multi_index(np.where(self.bin_img == False), self.bin_img.shape))
+        return np.sort(np.ravel_multi_index(np.where(self.binImg == False), self.binImg.shape))
         
-    def getCellImg(self, param):
+    def get_cell_img(self, param):
         '''
         Returns binary image of one cell with [SPHERICAL] lattice parameter param
         '''
@@ -208,20 +214,84 @@ class Domain(object):
         cell = np.sqrt((x - self.cellSz[0]/2)**2 + (y - self.cellSz[1]/2)**2) >= param
         return cell[:, :, np.newaxis]
     
-    def setDomainImage(self):
+    def set_domain_image(self):
         '''
         Returns binary image of whole domain
         '''
         # TODO: think about making this more efficient by doing vectorized computations without loops
         for i in range(self.numCells[0]):
             for j in range(self.numCells[1]):
-                self.bin_img[i*self.cellSz[0]:(i+1)*self.cellSz[0],
+                self.binImg[i*self.cellSz[0]:(i+1)*self.cellSz[0],
                              j*self.cellSz[1]:(j+1)*self.cellSz[1], :] \
-                = self.getCellImg(self.params[i, j])
-        self.volFrac = np.count_nonzero(self.bin_img)*1./self.bin_img.size
+                = self.get_cell_img(self.params[i, j])
+        self.volFrac = np.count_nonzero(self.binImg)*1./self.binImg.size
+        
+    def compute_base_states(self):
+        '''
+        computes the base extreme states: will help in designing reward function
+        '''
+        # Base 1: Solid Cantilever Distributed Load
+        self.reset_params(0)
+        self.set_domain_image()
+        
+        tpd = TPD(self.domainSz[0], self.domainSz[1])
+        tpd.set_boundary_condition(1) # cantilever
+        tpd.load_top(tpd.get_edges_array()[-1], 1) # distributed load on top edge
+        tpd.set_key_value('PROB_NAME', 'sph_lat_base_1')
+        tpd.set_key_value('VOL_FRAC', self.volFrac)
+        tpd.set_key_value('PASV_ELEM', self.passive_elems())
+        
+        self.solve_fea(tpd.config)
+        self.save_results('data/sph_lat_base_1')
+        
+        # Base 2: Solid Cantilever Point Load
+        self.reset_params(0)
+        self.set_domain_image()
+        
+        tpd = TPD(self.domainSz[0], self.domainSz[1])
+        tpd.set_boundary_condition(1) # cantilever
+        tpd.load_top(np.array([tpd.get_edges_array()[-1][-1]]), 1) # distributed load on top edge
+        tpd.set_key_value('PROB_NAME', 'sph_lat_base_2')
+        tpd.set_key_value('VOL_FRAC', self.volFrac)
+        tpd.set_key_value('PASV_ELEM', self.passive_elems())
+        
+        self.solve_fea(tpd.config)
+        self.save_results('data/sph_lat_base_2')
+        
+        # Base 3: Void Cantilever Distributed Load
+        self.reset_params(self.paramsMax)
+        self.set_domain_image()
+        
+        tpd = TPD(self.domainSz[0], self.domainSz[1])
+        tpd.set_boundary_condition(1) # cantilever
+        tpd.load_top(tpd.get_edges_array()[-1], 1) # distributed load on top edge
+        tpd.set_key_value('PROB_NAME', 'sph_lat_base_3')
+        tpd.set_key_value('VOL_FRAC', self.volFrac)
+        tpd.set_key_value('PASV_ELEM', self.passive_elems())
+        
+        self.solve_fea(tpd.config)
+        self.save_results('data/sph_lat_base_3')
+        
+        # Base 4: Void Cantilever Point Load
+        self.reset_params(self.paramsMax)
+        self.set_domain_image()
+        
+        tpd = TPD(self.domainSz[0], self.domainSz[1])
+        tpd.set_boundary_condition(1) # cantilever
+        tpd.load_top(np.array([tpd.get_edges_array()[-1][-1]]), 1) # distributed load on top edge
+        tpd.set_key_value('PROB_NAME', 'sph_lat_base_4')
+        tpd.set_key_value('VOL_FRAC', self.volFrac)
+        tpd.set_key_value('PASV_ELEM', self.passive_elems())
+        
+        self.solve_fea(tpd.config)
+        self.save_results('data/sph_lat_base_4')
+        
+        # Reset to default params
+        self.reset_params()
+        self.set_domain_image()
         
     # TODO: randomize intial state VERY IMPORTANT
-    def computeState(self):
+    def compute_state(self):
         '''
         computes the full current state including FEA results
         '''
@@ -232,8 +302,14 @@ class Domain(object):
         tpd.set_key_value('VOL_FRAC', self.volFrac)
         tpd.set_key_value('PASV_ELEM', self.passive_elems())
         
+        self.solve_fea(tpd.config)
+        
+    def solve_fea(self, config):
+        '''
+        Solves the ToPy FEA problem specified in TPD config
+        '''
         t = topy.Topology()
-        t.load_config_dict(tpd.config)
+        t.load_config_dict(config)
         t.set_top_params()
         
         t.update_desvars_oc()
@@ -248,20 +324,45 @@ class Domain(object):
         self.comp = t.qkq.T
         self.comp = self.comp[:, :, np.newaxis]
         
+        
+    def save_results(self, name = 'out'):
+        '''
+        Plot results as image and save in PNG format
+        '''
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
+        im1 = ax1.matshow(self.binImg[:, :, 0].T)
+        fig.colorbar(im1, ax=ax1)
+        ax1.set_title('Binary Image')
+        ax1.xaxis.set_ticks_position('bottom')
+        im2 = ax2.matshow(self.dispX[:, :, 0].T)
+        fig.colorbar(im2, ax=ax2)
+        ax2.set_title('X displacement')
+        ax2.xaxis.set_ticks_position('bottom')
+        im3 = ax3.matshow(self.comp[:, :, 0].T)
+        fig.colorbar(im3, ax=ax3)
+        ax3.set_title('Compliance')
+        ax3.xaxis.set_ticks_position('bottom')
+        im4 = ax4.matshow(self.dispY[:, :, 0].T)
+        fig.colorbar(im4, ax=ax4)
+        ax4.set_title('Y displacement')
+        ax4.xaxis.set_ticks_position('bottom')
+        fig.tight_layout()
+        fig.savefig(name + '_figure.png')
+        
     def _update(self, action):
         delta = self.paramsDel * np.sign(np.around(action))
         self.params = np.clip(self.params + delta, self.paramsMin, self.paramsMax)
-        self.setDomainImage()
+        self.set_domain_image()
         
 
 class Lattice(object):
     def __init__(self, domainSz = DOMAIN_SZ, cellSz = CELL_SZ):
         self.domain = Domain(domainSz, cellSz)
         
-        self.domain.setDomainImage()
-        self.domain.computeState()
+        self.domain.set_domain_image()
+        self.domain.compute_state()
         
-        self.state_shapes = (self.domain.bin_img.shape,
+        self.state_shapes = (self.domain.binImg.shape,
                              self.domain.dispX.shape,
                              self.domain.dispY.shape,
                              self.domain.comp.shape)
@@ -270,8 +371,8 @@ class Lattice(object):
     def reset(self):
         self.domain = Domain(self.domain.domainSz, self.domain.cellSz)
         
-        self.domain.setDomainImage()
-        self.domain.computeState() # TODO (IMP) randomize initial state
+        self.domain.set_domain_image()
+        self.domain.compute_state() # TODO (IMP) randomize initial state
         return self.domain
             
     def step(self, action, compute = False):
@@ -280,7 +381,7 @@ class Lattice(object):
         VF = self.domain.volFrac
         self.domain._update(action.reshape(self.domain.params.shape))
         if compute:
-            self.domain.computeState()
+            self.domain.compute_state()
         delVF = self.domain.volFrac - VF
         
         # temporary reward function
