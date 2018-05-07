@@ -195,7 +195,7 @@ class Domain(object):
         
         self.volFrac = 0.
         
-    def reset_params(self, value = -1.):
+    def reset_params(self, value = -1):
         if value < 0:
             value = (self.paramsMax+self.paramsMin)/2.
         self.params = value*np.ones(np.append(self.numCells, self.paramsDim))
@@ -297,6 +297,7 @@ class Domain(object):
         '''
         tpd = TPD(self.domainSz[0], self.domainSz[1])
         # TODO set boundary condition, randomly set now
+        tpd.set_boundary_condition(1) # cantilever
         # TODO set loads, randomly set now
         tpd.set_key_value('PROB_NAME', 'sph_lat_test')
         tpd.set_key_value('VOL_FRAC', self.volFrac)
@@ -324,6 +325,11 @@ class Domain(object):
         self.comp = t.qkq.T
         self.comp = self.comp[:, :, np.newaxis]
         
+    def get_max_values(self):
+        '''
+        Returns max X-displacement, Y-displacement, and compliance
+        '''
+        return (np.amax(np.absolute(self.dispX)), np.amax(np.absolute(self.dispY)), np.amax(self.comp))
         
     def save_results(self, name = 'out'):
         '''
@@ -368,25 +374,38 @@ class Lattice(object):
                              self.domain.comp.shape)
         self.action_size = np.prod(self.domain.numCells)
         
+        self.max_limit = (600., 3000., 30000.) # 1/10th
+        
     def reset(self):
         self.domain = Domain(self.domain.domainSz, self.domain.cellSz)
         
         self.domain.set_domain_image()
         self.domain.compute_state() # TODO (IMP) randomize initial state
         return self.domain
+    
+    def compute_reward(self, max_values):
+        return 1. - (max_values[0]/self.max_limit[0] + max_values[1]/self.max_limit[1] + max_values[2]/self.max_limit[2])/3.
             
     def step(self, action, compute = False):
         assert(self.domain.params.size == action.size)
         
+        reward = 0.
         VF = self.domain.volFrac
+        
+        # TODO randomize action occasionally
+        if np.random.random > 0.5:
+            i = np.random.randint(action.size)
+            action[i] = np.random.randint(2)*2 - 1 # 1 or -1
+        
         self.domain._update(action.reshape(self.domain.params.shape))
         if compute:
             self.domain.compute_state()
+            reward += self.compute_reward(self.domain.get_max_values())
         delVF = self.domain.volFrac - VF
         
         # temporary reward function
         # TODO: define appropriate reward
-        reward = 0.0001*np.random.randn() + delVF
+        reward -= delVF
         return self.domain, reward
     
     def end(self):
